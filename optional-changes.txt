@@ -1,0 +1,9 @@
+Optional features:
+Color by time not done
+
+add category of זמן בטש בעונשים
+
+search string columns
+
+
+synchronize add green V from channel 

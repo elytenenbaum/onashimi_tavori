@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <style>
+        :root { --bg-main: #1e1f22; --bg-panel: #2b2d31; --bg-header: #232428; --bg-odd: #313338; --blurple: #5865f2; --text-main: #ffffff; --text-muted: #b5bac1; --bg-input: #1e1f22; }
+        body { background-color: var(--bg-main); color: var(--text-main); font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; padding: 20px; direction: rtl; }
+        
+        .header-panel { background-color: var(--bg-panel); padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #1e1f22; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        
+        .top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; border-bottom: 1px solid #1e1f22; padding-bottom: 15px; margin-bottom: 15px; }
+        
+        .title-and-tabs { display: flex; align-items: center; gap: 30px; flex-wrap: wrap; }
+        h1 { margin: 0; font-size: 24px; color: var(--blurple); }
+        
+        .tabs { display: flex; gap: 12px; flex-wrap: wrap; }
+        .tab-btn { background-color: #313338; color: var(--text-muted); border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        .tab-btn:hover { background-color: #3f4147; color: var(--text-main); }
+        .tab-btn.active-tab { background-color: var(--blurple); color: white; box-shadow: 0 4px 12px rgba(88, 101, 242, 0.4); }
+
+        .controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        
+        .pill { background-color: transparent; color: var(--text-muted); border: 1px solid #4f545c; padding: 8px 14px; border-radius: 4px; font-weight: bold; font-size: 13px; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 8px; height: 38px; box-sizing: border-box; }
+        .pill:hover { background-color: #3f4147; color: white; }
+        .pill select { background: none; border: none; color: inherit; font-weight: inherit; font-size: inherit; cursor: pointer; outline: none; }
+        .pill select option { background-color: var(--bg-panel); color: var(--text-main); }
+        .pill input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--blurple); cursor: pointer; margin: 0; }
+        
+        .search-box { background-color: var(--bg-input); color: var(--text-main); border: 1px solid var(--bg-header); padding: 10px; border-radius: 4px; height: 38px; box-sizing: border-box; min-width: 200px; }
+        
+        .action-btn { height: 38px; padding: 0 16px; border-radius: 4px; font-weight: bold; font-size: 14px; display: inline-flex; align-items: center; justify-content: center; border: none; cursor: pointer; text-decoration: none; box-sizing: border-box; transition: 0.2s; }
+        .logout-btn { background-color: transparent; color: #ed4245; border: 1px solid #ed4245; }
+        .logout-btn:hover { background-color: #ed4245; color: white; }
+        
+        .sub-tabs-container { display: flex; gap: 10px; flex-wrap: wrap; min-height: 32px; align-items: center; }
+        .sub-btn { background-color: transparent; color: var(--text-muted); border: 1px solid #4f545c; padding: 6px 14px; border-radius: 20px; font-weight: bold; font-size: 13px; cursor: pointer; transition: 0.2s; }
+        .sub-btn:hover { background-color: #3f4147; color: white; }
+        .sub-btn.active-sub { background-color: #2ecc71; border-color: #2ecc71; color: #111; }
+        
+        .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; align-items: start; transition: 0.3s; }
+        .channel-panel { background-color: var(--bg-panel); border-radius: 8px; border: 1px solid #1e1f22; overflow: hidden; transition: order 0.3s ease; }
+        .channel-header { background-color: var(--bg-header); color: var(--blurple); padding: 12px 16px; font-weight: bold; border-bottom: 2px solid #1e1f22; display: flex; align-items: center; font-size: 18px; }
+        .msg-badge { background-color: var(--bg-main); font-size: 13px; padding: 3px 10px; border-radius: 12px; margin-right: auto; color: var(--text-muted); border: 1px solid #313338;}
+        
+        .message-list { max-height: 70vh; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 12px; }
+        .msg-row { display: flex; gap: 15px; padding: 12px; border-radius: 8px; background-color: var(--bg-main); border: 1px solid #1e1f22; align-items: flex-start; transition: opacity 0.3s; }
+        .msg-row:hover { background-color: #313338; }
+        
+        .msg-meta { display: flex; flex-direction: column; min-width: 120px; max-width: 120px; text-align: right; }
+        .user-cell { font-weight: bold; color: var(--text-main); font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .time-cell { font-size: 12px; color: var(--text-muted); margin-top: 4px; font-weight: 500; }
+        
+        .msg-content { flex-grow: 1; min-width: 0; font-size: 14px; color: #dbdee1; line-height: 1.4; }
+        .msg-content-clamped { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+        
+        .action-cell { min-width: 40px; display: flex; justify-content: center; align-items: center; }
+        .is-done { opacity: 0.4; filter: grayscale(100%); text-decoration: line-through; }
+        
+        /* THE NEW INTERACTIVE CHECKBOX DESIGN */
+        .check-btn { 
+            background-color: #2b2d31; border: 2px solid #4f545c; color: transparent; 
+            width: 24px; height: 24px; padding: 0; border-radius: 3px; cursor: pointer; 
+            transition: 0.2s; display: flex; align-items: center; justify-content: center;
+            font-size: 14px; font-weight: bold;
+        }
+        .check-btn:hover { border-color: #2ecc71; color: rgba(46, 204, 113, 0.4); }
+        .check-btn.checked { background-color: #2ecc71; border-color: #2ecc71; color: white; }
+        .check-btn.checked:hover { background-color: #27ae60; border-color: #27ae60; }
+        
+        .toast { visibility: hidden; min-width: 250px; background-color: #232428; color: #fff; text-align: center; border-radius: 8px; padding: 12px 20px; position: fixed; z-index: 1000; left: 50%; bottom: 30px; transform: translateX(-50%); display: flex; justify-content: space-between; align-items: center; gap: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); border: 1px solid #1e1f22; opacity: 0; transition: opacity 0.3s, bottom 0.3s; font-size: 15px; font-weight: bold; }
+        .toast.show { visibility: visible; opacity: 1; bottom: 50px; }
+        .toast-btn { background-color: #313338; color: var(--text-main); border: 1px solid #4f545c; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .toast-btn:hover { background-color: #ed4245; border-color: #ed4245; color: white; }
+        
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-main); }
+        ::-webkit-scrollbar-thumb { background: #1a1b1e; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    
+    <div id="toast" class="toast">
+        <span id="toast-msg">ההודעה סומנה כהושלמה.</span>
+        <button id="toast-undo" class="toast-btn">בטל</button>
+    </div>
+
+    <div class="header-panel">
+        <div class="top-row">
+            <div class="title-and-tabs">
+                <h1>{{ title }}</h1>
+                <div class="tabs">
+                    {% for cat in data.keys() %}
+                    <button class="tab-btn" onclick="openCategory('{{ cat }}')" id="btn-{{ cat }}">{{ cat }}</button>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <div class="controls">
+                <label class="pill">
+                    <input type="checkbox" id="showDoneToggle" onchange="applyFilters(document)"> הצג הושלמו
+                </label>
+                
+                <div class="pill">
+                    <select id="sortToggle" onchange="applyFilters(document)">
+                        <option value="newest">מהחדש ביותר</option>
+                        <option value="oldest">מהישן ביותר</option>
+                    </select>
+                </div>
+
+                <input type="text" id="searchInput" class="search-box" placeholder="חפש משתמש או הודעה...">
+                <a href="/logout" class="action-btn logout-btn">התנתק</a>
+            </div>
+        </div>
+        
+        <div class="sub-tabs-container" id="subTabsContainer"></div>
+    </div>
+
+    <div class="main-content">
+        {% for cat, channels in data.items() %}
+        <div class="category-view" id="view-{{ cat }}" style="display: none;">
+            <div class="dashboard">
+                {% for channel, messages in channels.items() %}
+                
+                {% set panel_cid = messages[0].cid if messages else '' %}
+                {% set is_ignored_panel = (panel_cid == '1477727056664985839') %}
+                
+                <div class="channel-panel" data-channel="{{ channel }}" data-cid="{{ panel_cid }}">
+                    <div class="channel-header"># {{ channel }} <span class="msg-badge">0</span></div>
+                    <div class="message-list" id="scroll-{{ loop.index }}-{{ cat }}">
+                        {% for msg in messages %}
+                        <div class="msg-row {% if msg.done == '1' %}is-done{% endif %}" id="row-{{ msg.mid }}" data-cid="{{ msg.cid }}" data-done="{{ msg.done }}">
+                            <div class="msg-meta">
+                                <span class="user-cell" title="{{ msg.usr }}">{{ msg.usr }}</span>
+                                <span class="time-cell" data-timestamp="{{ msg.ts }}">{{ msg.ts }}</span>
+                            </div>
+                            <div class="msg-content" title="{{ msg.msg }}">
+                                <div class="msg-content-clamped">{{ msg.msg }}</div>
+                            </div>
+                            <div class="action-cell">
+                                {% if not is_ignored_panel %}
+                                    <button class="check-btn {% if msg.done == '1' %}checked{% endif %}" onclick="toggleDone('{{ msg.cid }}', '{{ msg.mid }}')">✔</button>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <script>
+        let activeTab = sessionStorage.getItem('activeTab');
+        let channelVisibility = JSON.parse(sessionStorage.getItem('chanVis')) || {};
+        let toastTimeout;
+
+        function openCategory(catName) {
+            activeTab = catName;
+            sessionStorage.setItem('activeTab', catName);
+
+            document.querySelectorAll('.category-view').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active-tab'));
+
+            const view = document.getElementById('view-' + catName);
+            const btn = document.getElementById('btn-' + catName);
+
+            if(view) view.style.display = 'block';
+            if(btn) btn.classList.add('active-tab');
+
+            renderSubTabs(catName);
+        }
+
+        function renderSubTabs(catName) {
+            const subContainer = document.getElementById('subTabsContainer');
+            subContainer.innerHTML = ''; 
+
+            const activeView = document.getElementById('view-' + catName);
+            if(!activeView) return;
+
+            activeView.querySelectorAll('.channel-panel').forEach(panel => {
+                const chName = panel.getAttribute('data-channel');
+                
+                if (channelVisibility[chName] === undefined) {
+                    channelVisibility[chName] = true;
+                }
+
+                const subBtn = document.createElement('button');
+                subBtn.innerText = chName;
+                subBtn.className = "sub-btn " + (channelVisibility[chName] ? "active-sub" : "");
+                
+                subBtn.onclick = () => {
+                    channelVisibility[chName] = !channelVisibility[chName];
+                    sessionStorage.setItem('chanVis', JSON.stringify(channelVisibility));
+                    subBtn.className = "sub-btn " + (channelVisibility[chName] ? "active-sub" : "");
+                    panel.style.display = channelVisibility[chName] ? '' : 'none';
+                };
+                
+                subContainer.appendChild(subBtn);
+                panel.style.display = channelVisibility[chName] ? '' : 'none';
+            });
+        }
+
+        function applyTimeColors(doc = document) {
+            const now = new Date();
+            doc.querySelectorAll('.time-cell').forEach(cell => {
+                const ts = cell.getAttribute('data-timestamp');
+                if(!ts || ts === "-") return;
+                
+                const d = new Date(ts.replace(' ', 'T') + 'Z');
+                const timeStr = d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false});
+                
+                const day = String(d.getDate()).padStart(2, '0');
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const dateStr = `${day}/${month}`;
+                
+                cell.innerText = (now.toDateString() === d.toDateString()) ? `היום ${timeStr}` : `${dateStr} ${timeStr}`;
+            });
+        }
+
+        function applyFilters(doc = document) {
+            const rawQuery = document.getElementById('searchInput').value.trim();
+            const q = rawQuery.toLowerCase();
+            const showDone = document.getElementById('showDoneToggle').checked;
+            const sortOrder = document.getElementById('sortToggle').value;
+            
+            const isNumericSearch = q.length > 0 && !isNaN(q);
+            
+            const scrollPositions = {};
+            doc.querySelectorAll('.message-list').forEach(el => scrollPositions[el.id] = el.scrollTop);
+
+            doc.querySelectorAll('.dashboard').forEach(dashboard => {
+                const panelsData = [];
+
+                dashboard.querySelectorAll('.channel-panel').forEach(panel => {
+                    let cnt = 0;
+                    const messageList = panel.querySelector('.message-list');
+                    
+                    panel.querySelectorAll('.msg-row').forEach(row => {
+                        const isDone = row.getAttribute('data-done') === '1' || row.classList.contains('is-done');
+                        const txt = row.querySelector('.user-cell').innerText.toLowerCase() + " " + row.querySelector('.msg-content').innerText.toLowerCase();
+                        
+                        let textMatch = false;
+                        if (q === "") {
+                            textMatch = true;
+                        } else if (isNumericSearch) {
+                            const regex = new RegExp(`(^|[^\\d])${q}([^\\d]|$)`);
+                            textMatch = regex.test(txt);
+                        } else {
+                            textMatch = txt.includes(q);
+                        }
+
+                        const show = textMatch && (showDone || !isDone);
+                        row.style.display = show ? '' : 'none';
+                        if(show) cnt++;
+                    });
+                    
+                    let rows = Array.from(panel.querySelectorAll('.msg-row'));
+                    rows.sort((a, b) => {
+                        let tsA = new Date(a.querySelector('.time-cell').getAttribute('data-timestamp').replace(' ', 'T') + 'Z');
+                        let tsB = new Date(b.querySelector('.time-cell').getAttribute('data-timestamp').replace(' ', 'T') + 'Z');
+                        return sortOrder === 'newest' ? tsB - tsA : tsA - tsB;
+                    });
+                    
+                    rows.forEach(row => messageList.appendChild(row));
+
+                    const badge = panel.querySelector('.msg-badge');
+                    if(badge) badge.innerText = cnt;
+
+                    panelsData.push({
+                        panel: panel,
+                        count: cnt,
+                        name: panel.getAttribute('data-channel')
+                    });
+                });
+
+                panelsData.sort((a, b) => {
+                    if (b.count !== a.count) return b.count - a.count;
+                    return a.name.localeCompare(b.name); 
+                });
+
+                panelsData.forEach(data => {
+                    dashboard.appendChild(data.panel);
+                });
+            });
+
+            doc.querySelectorAll('.message-list').forEach(el => { 
+                if(scrollPositions[el.id] !== undefined) el.scrollTop = scrollPositions[el.id]; 
+            });
+        }
+
+        document.getElementById('searchInput').addEventListener('input', () => applyFilters(document));
+
+        function showToast(cid, mid) {
+            const toast = document.getElementById('toast');
+            toast.classList.add('show');
+            document.getElementById('toast-undo').onclick = () => undoMarkDone(cid, mid);
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => toast.classList.remove('show'), 4000);
+        }
+
+        // --- NEW TOGGLE ROUTER ---
+        async function toggleDone(cid, mid) {
+            const row = document.getElementById(`row-${mid}`);
+            if (!row) return;
+            const isDone = row.getAttribute('data-done') === '1';
+            
+            if (isDone) {
+                await undoMarkDone(cid, mid);
+            } else {
+                await markDone(cid, mid);
+            }
+        }
+
+        async function markDone(cid, mid) {
+            const row = document.getElementById(`row-${mid}`);
+            if(row) row.style.opacity = '0.5';
+            
+            const res = await fetch(`/react/${cid}/${mid}`, {method: 'POST'});
+            
+            if(res.status === 200 && (await res.json()).status === 'success') {
+                if(row) {
+                    row.classList.add('is-done');
+                    row.setAttribute('data-done', '1');
+                    row.style.opacity = '1';
+                    const btn = row.querySelector('.check-btn');
+                    if (btn) btn.classList.add('checked');
+                }
+                
+                let done = JSON.parse(localStorage.getItem('doneMsgs') || '[]');
+                let ignored = JSON.parse(localStorage.getItem('ignoredDones') || '[]');
+                if(!done.includes(mid)) done.push(mid);
+                ignored = ignored.filter(id => id !== mid);
+                localStorage.setItem('doneMsgs', JSON.stringify(done));
+                localStorage.setItem('ignoredDones', JSON.stringify(ignored));
+                
+                applyFilters(document);
+                showToast(cid, mid);
+            } else {
+                if(row) row.style.opacity = '1';
+            }
+        }
+
+        async function undoMarkDone(cid, mid) {
+            document.getElementById('toast').classList.remove('show');
+            const row = document.getElementById(`row-${mid}`);
+            if(row) row.style.opacity = '0.5';
+            
+            const res = await fetch(`/unreact/${cid}/${mid}`, {method: 'POST'});
+            
+            if(res.status === 200 && (await res.json()).status === 'success') {
+                let done = JSON.parse(localStorage.getItem('doneMsgs') || '[]');
+                let ignored = JSON.parse(localStorage.getItem('ignoredDones') || '[]');
+                done = done.filter(id => id !== mid);
+                if(!ignored.includes(mid)) ignored.push(mid);
+                localStorage.setItem('doneMsgs', JSON.stringify(done));
+                localStorage.setItem('ignoredDones', JSON.stringify(ignored));
+                
+                if(row) {
+                    row.classList.remove('is-done');
+                    row.setAttribute('data-done', '0');
+                    row.style.opacity = '1';
+                    const btn = row.querySelector('.check-btn');
+                    if (btn) btn.classList.remove('checked');
+                }
+                applyFilters(document);
+            } else {
+                if(row) row.style.opacity = '1';
+            }
+        }
+
+        const getFingerprint = list => {
+            let ids = Array.from(list.querySelectorAll('.msg-row')).map(r => r.id + r.getAttribute('data-done'));
+            return ids.sort().join(',');
+        };
+
+        async function silentlyUpdate() {
+            try {
+                const res = await fetch(window.location.href);
+                if (res.redirected) return; 
+                
+                const text = await res.text();
+                const newDoc = new DOMParser().parseFromString(text, 'text/html');
+                if (!newDoc.querySelector('.main-content')) return;
+
+                let done = JSON.parse(localStorage.getItem('doneMsgs') || '[]');
+                let ignored = JSON.parse(localStorage.getItem('ignoredDones') || '[]');
+                
+                newDoc.querySelectorAll('.channel-panel').forEach(newPanel => {
+                    const chName = newPanel.getAttribute('data-channel');
+                    const livePanel = document.querySelector(`.channel-panel[data-channel="${chName}"]`);
+                    
+                    if(livePanel) {
+                        const newList = newPanel.querySelector('.message-list');
+                        const liveList = livePanel.querySelector('.message-list');
+                        
+                        if(newList && liveList) {
+                            const newFingerprint = getFingerprint(newList);
+                            const liveFingerprint = getFingerprint(liveList);
+
+                            if (newFingerprint !== liveFingerprint) {
+                                const scrollY = liveList.scrollTop;
+                                
+                                liveList.innerHTML = newList.innerHTML;
+                                
+                                liveList.querySelectorAll('.msg-row').forEach(row => {
+                                    let rowMid = row.id.replace('row-', '');
+                                    let btn = row.querySelector('.check-btn');
+                                    
+                                    if(done.includes(rowMid)) {
+                                        row.classList.add('is-done');
+                                        row.setAttribute('data-done', '1');
+                                        if (btn) btn.classList.add('checked');
+                                    } else if (ignored.includes(rowMid)) {
+                                        row.classList.remove('is-done');
+                                        row.setAttribute('data-done', '0');
+                                        if (btn) btn.classList.remove('checked');
+                                    }
+                                });
+                                
+                                liveList.scrollTop = scrollY;
+                            }
+                        }
+                    }
+                });
+                
+                applyTimeColors(document);
+                applyFilters(document); 
+
+            } catch(e) {}
+        }
+        
+        setInterval(silentlyUpdate, 5000);
+
+        window.addEventListener('DOMContentLoaded', () => {
+            applyTimeColors(document); 
+            
+            if(sessionStorage.getItem('showDoneState') === 'true') {
+                document.getElementById('showDoneToggle').checked = true;
+            }
+            if(sessionStorage.getItem('searchQuery')) {
+                document.getElementById('searchInput').value = sessionStorage.getItem('searchQuery');
+            }
+            if(sessionStorage.getItem('sortOrder')) {
+                document.getElementById('sortToggle').value = sessionStorage.getItem('sortOrder');
+            }
+            
+            applyFilters(document); 
+            
+            document.getElementById('showDoneToggle').addEventListener('change', (e) => {
+                sessionStorage.setItem('showDoneState', e.target.checked);
+            });
+            document.getElementById('searchInput').addEventListener('input', (e) => {
+                sessionStorage.setItem('searchQuery', e.target.value);
+            });
+            document.getElementById('sortToggle').addEventListener('change', (e) => {
+                sessionStorage.setItem('sortOrder', e.target.value);
+            });
+
+            if (!activeTab || !document.getElementById('btn-' + activeTab)) {
+                const firstBtn = document.querySelector('.tab-btn');
+                if (firstBtn) activeTab = firstBtn.innerText;
+            }
+            if (activeTab) openCategory(activeTab);
+        });
+    </script>
+</body>
+</html>
