@@ -1,21 +1,18 @@
 import re
 import os
-import argparse
 import socket
 import requests
 import urllib.parse
 import secrets
 from flask import Flask, render_template, jsonify, session, redirect, request
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-f", "--file", default="filtered_export.txt")
-parser.add_argument("-t", "--title", default="עונשימי טבורי")
-parser.add_argument("-p", "--port", type=int, default=5000)
-parser.add_argument("--token", required=True) 
-args = parser.parse_args()
-
 app = Flask(__name__)
-app.secret_key = secrets.token_hex(24)
+
+# --- ENVIRONMENT CONFIGURATION ---
+FILE_PATH = os.environ.get("EXPORT_FILE", "filtered_export.txt")
+GUI_TITLE = os.environ.get("GUI_TITLE", "עונשימי טבורי")
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "fallback_dev_key_if_missing")
 
 # --- SERVER-SIDE STATIC CACHE MEMORY ---
 CACHED_LOG_DATA = {}
@@ -25,7 +22,6 @@ LAST_FILE_MTIME = 0
 DISCORD_CLIENT_ID = "1511268740334096498"
 DISCORD_CLIENT_SECRET = "eqjSKQITQMXz4W_3_z3LmBZLY0jC2-j6"
 ALLOWED_SERVER_ID = "1477727055910146101"
-REDIRECT_URI = "http://localhost:5000/callback"
 
 def get_local_ip():
     try:
@@ -39,7 +35,6 @@ def get_local_ip():
 
 def parse_logs():
     global CACHED_LOG_DATA, LAST_FILE_MTIME
-    filepath = args.file
     
     parsed_data = {
         "משמעת": {},
@@ -47,18 +42,18 @@ def parse_logs():
         "דיונים": {}
     }
     
-    if not os.path.exists(filepath):
+    if not os.path.exists(FILE_PATH):
         return parsed_data
     
     try:
-        current_mtime = os.path.getmtime(filepath)
+        current_mtime = os.path.getmtime(FILE_PATH)
         if current_mtime == LAST_FILE_MTIME and CACHED_LOG_DATA:
             return CACHED_LOG_DATA
             
         pattern = re.compile(r"^\[(.*?)\] \[(.*?)\] \[(.*?)\] \[(.*?)\] \[(0|1)\] (.*?): (.*)$")
         channel_to_category = {} 
         
-        with open(filepath, 'r', encoding='utf-8') as f:
+        with open(FILE_PATH, 'r', encoding='utf-8') as f:
             lines = f.readlines()
             
         for line in lines[3:]:
@@ -95,7 +90,8 @@ def parse_logs():
 
 @app.route("/login")
 def login():
-    oauth_url = f"https://discord.com/api/oauth2/authorize?client_id={DISCORD_CLIENT_ID}&redirect_uri={urllib.parse.quote(REDIRECT_URI)}&response_type=code&scope=identify%20guilds"
+    redirect_uri = request.url_root.rstrip('/') + "/callback"
+    oauth_url = f"https://discord.com/api/oauth2/authorize?client_id={DISCORD_CLIENT_ID}&redirect_uri={urllib.parse.quote(redirect_uri)}&response_type=code&scope=identify%20guilds"
     return redirect(oauth_url)
 
 @app.route("/callback")
@@ -103,16 +99,23 @@ def callback():
     code = request.args.get('code')
     if not code: return "Authentication Failed.", 403
     
+    redirect_uri = request.url_root.rstrip('/') + "/callback"
+    
     data = {
         'client_id': DISCORD_CLIENT_ID,
         'client_secret': DISCORD_CLIENT_SECRET,
         'grant_type': 'authorization_code',
         'code': code,
-        'redirect_uri': REDIRECT_URI
+        'redirect_uri': redirect_uri
     }
     headers = {'Content-Type': 'application/x-www-form-urlencoded'}
     token_resp = requests.post("https://discord.com/api/oauth2/token", data=data, headers=headers)
-    token = token_resp.json().get('access_token')
+    
+    try:
+        token = token_resp.json().get('access_token')
+    except Exception:
+        return f"Discord API Error: {token_resp.text}", 400
+        
     if not token: return "Failed to retrieve token.", 403
     
     guilds = requests.get("https://discord.com/api/users/@me/guilds", headers={"Authorization": f"Bearer {token}"}).json()
@@ -129,7 +132,7 @@ def logout():
 @app.route("/react/<channel_id>/<message_id>", methods=["POST"])
 def react_to_message(channel_id, message_id):
     if not session.get('authorized'): return jsonify({"status": "unauthorized"}), 403
-    headers = {"Authorization": f"Bot {args.token}"}
+    headers = {"Authorization": f"Bot {BOT_TOKEN}"}
     emoji = urllib.parse.quote("✅") 
     url = f"https://discord.com/api/v10/channels/{channel_id}/messages/{message_id}/reactions/{emoji}/@me"
     
@@ -139,11 +142,9 @@ def react_to_message(channel_id, message_id):
 @app.route("/unreact/<channel_id>/<message_id>", methods=["POST"])
 def unreact_to_message(channel_id, message_id):
     if not session.get('authorized'): return jsonify({"status": "unauthorized"}), 403
-    headers = {"Authorization": f"Bot {args.token}"}
+    headers = {"Authorization": f"Bot {BOT_TOKEN}"}
     emoji = urllib.parse.quote("✅") 
     
-    # 🛡️ THE FIX: Removed "/@me" from the end of this URL. 
-    # This tells Discord to wipe ALL reactions of this specific emoji from the message.
     url = f"https://discord.com/api/v10/channels/{channel_id}/messages/{message_id}/reactions/{emoji}"
     
     response = requests.delete(url, headers=headers)
@@ -153,12 +154,4 @@ def unreact_to_message(channel_id, message_id):
 def index():
     if not session.get('authorized'):
         return redirect('/login')
-    return render_template("index.html", title=args.title, data=parse_logs())
-
-if __name__ == "__main__":
-    port = args.port
-    print("\n" + "="*50)
-    print("🚀 SECURE DISCORD WEB DASHBOARD IS LIVE!")
-    print(f"💻 Local Port: {port}")
-    print("="*50 + "\n")
-    app.run(host="0.0.0.0", port=port, debug=False)
+    return render_template("index.html", title=GUI_TITLE, data=parse_logs())

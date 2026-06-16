@@ -50,7 +50,7 @@
         
         .msg-meta { display: flex; flex-direction: column; min-width: 120px; max-width: 120px; text-align: right; }
         .user-cell { font-weight: bold; color: var(--text-main); font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .time-cell { font-size: 12px; color: var(--text-muted); margin-top: 4px; font-weight: 500; }
+        .time-cell { font-size: 12px; margin-top: 4px; font-weight: bold; }
         
         .msg-content { flex-grow: 1; min-width: 0; font-size: 14px; color: #dbdee1; line-height: 1.4; }
         .msg-content-clamped { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
@@ -58,7 +58,6 @@
         .action-cell { min-width: 40px; display: flex; justify-content: center; align-items: center; }
         .is-done { opacity: 0.4; filter: grayscale(100%); text-decoration: line-through; }
         
-        /* THE NEW INTERACTIVE CHECKBOX DESIGN */
         .check-btn { 
             background-color: #2b2d31; border: 2px solid #4f545c; color: transparent; 
             width: 24px; height: 24px; padding: 0; border-radius: 3px; cursor: pointer; 
@@ -158,6 +157,9 @@
         let channelVisibility = JSON.parse(sessionStorage.getItem('chanVis')) || {};
         let toastTimeout;
 
+        // 🛡️ Add your USER_RELATED_CHANNELS IDs here (must be strings)
+        const userRelatedChannels = ["1477727056933556264", "1477727056933556265"];
+
         function openCategory(catName) {
             activeTab = catName;
             sessionStorage.setItem('activeTab', catName);
@@ -218,6 +220,28 @@
                 const dateStr = `${day}/${month}`;
                 
                 cell.innerText = (now.toDateString() === d.toDateString()) ? `היום ${timeStr}` : `${dateStr} ${timeStr}`;
+
+                // --- NEW LOGIC: Check Channel ID before coloring ---
+                const row = cell.closest('.msg-row');
+                const cid = row ? row.getAttribute('data-cid') : null;
+
+                if (cid && userRelatedChannels.includes(cid)) {
+                    const diffMs = now - d;
+                    const diffHours = diffMs / (1000 * 60 * 60);
+
+                    if (diffHours <= 8) {
+                        cell.style.color = '#2ecc71'; // Green
+                    } else if (diffHours <= 16) {
+                        cell.style.color = '#a8e6cf'; // Light Green
+                    } else if (diffHours <= 24) {
+                        cell.style.color = '#f1c40f'; // Yellow
+                    } else {
+                        cell.style.color = '#ed4245'; // Dark Red
+                    }
+                } else {
+                    // Reset to default standard color for all other channels
+                    cell.style.color = 'var(--text-muted)';
+                }
             });
         }
 
@@ -302,7 +326,6 @@
             toastTimeout = setTimeout(() => toast.classList.remove('show'), 4000);
         }
 
-        // --- NEW TOGGLE ROUTER ---
         async function toggleDone(cid, mid) {
             const row = document.getElementById(`row-${mid}`);
             if (!row) return;
