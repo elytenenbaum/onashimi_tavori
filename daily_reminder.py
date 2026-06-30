@@ -8,7 +8,6 @@ try:
     from zoneinfo import ZoneInfo
     israel_tz = ZoneInfo("Asia/Jerusalem")
 except ImportError:
-    # Fallback just in case you are on an ancient Python version
     israel_tz = datetime.timezone(datetime.timedelta(hours=3))
 
 intents = discord.Intents.default()
@@ -18,19 +17,24 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 SAHI_CHANNEL = 1477727056664985833
 DOCH1_CHANNEL = 1477727056664985831
 MI_CHANNEL = 1477727056664985834
+REFLECTION_CHANNEL = 1477727056664985834 
 
 # --- ⏰ TIMES ---
 TIME_SAHI = datetime.time(hour=6, minute=0, second=0, tzinfo=israel_tz)
 TIME_DOCH1 = datetime.time(hour=8, minute=0, second=0, tzinfo=israel_tz)
 TIME_MI_EVENING = datetime.time(hour=20, minute=0, second=0, tzinfo=israel_tz)
-TIME_MI_THU = datetime.time(hour=15, minute=30, second=0, tzinfo=israel_tz)
+TIME_REFLECTION_THU = datetime.time(hour=15, minute=30, second=0, tzinfo=israel_tz)
+TIME_MI_THU = datetime.time(hour=16, minute=0, second=0, tzinfo=israel_tz)
+
+# New schedules
+TIME_CHANTER_PREP = datetime.time(hour=21, minute=40, second=0, tzinfo=israel_tz)
+TIME_CHANTER_SEND = datetime.time(hour=23, minute=0, second=0, tzinfo=israel_tz)
 
 # ==========================================================
 # 1. SAHI REMINDER (Monday - Thursday @ 06:00)
 # ==========================================================
 @tasks.loop(time=TIME_SAHI)
 async def task_sahi():
-    # weekday(): 0=Mon, 1=Tue, 2=Wed, 3=Thu
     if datetime.datetime.now(israel_tz).weekday() in [0, 1, 2, 3]:
         channel = bot.get_channel(SAHI_CHANNEL)
         if channel:
@@ -42,7 +46,6 @@ async def task_sahi():
 # ==========================================================
 @tasks.loop(time=TIME_DOCH1)
 async def task_doch1():
-    # weekday(): 6=Sun
     if datetime.datetime.now(israel_tz).weekday() == 6:
         channel = bot.get_channel(DOCH1_CHANNEL)
         if channel:
@@ -54,7 +57,6 @@ async def task_doch1():
 # ==========================================================
 @tasks.loop(time=TIME_MI_EVENING)
 async def task_mi_evening():
-    # weekday(): 6=Sun, 0=Mon, 1=Tue, 2=Wed
     if datetime.datetime.now(israel_tz).weekday() in [6, 0, 1, 2]:
         channel = bot.get_channel(MI_CHANNEL)
         if channel:
@@ -62,16 +64,49 @@ async def task_mi_evening():
             print("✅ [Reminder Bot] Sent Evening M.I. reminder.")
 
 # ==========================================================
-# 4. M.I. THURSDAY (Thursday @ 15:30)
+# 4. THURSDAY REFLECTION WARNING (Thursday @ 15:30)
+# ==========================================================
+@tasks.loop(time=TIME_REFLECTION_THU)
+async def task_reflection_thursday():
+    if datetime.datetime.now(israel_tz).weekday() == 3:
+        channel = bot.get_channel(REFLECTION_CHANNEL)
+        if channel:
+            await channel.send("הופסלה הרפלקציה קרבה ובאה! זמן ליצור את התרגיל ולהתכונן להריץ אותו בקרוב")
+            print("✅ [Reminder Bot] Sent Thursday Reflection warning.")
+
+# ==========================================================
+# 5. M.I. THURSDAY (Thursday @ 16:00)
 # ==========================================================
 @tasks.loop(time=TIME_MI_THU)
 async def task_mi_thursday():
-    # weekday(): 3=Thu
     if datetime.datetime.now(israel_tz).weekday() == 3:
         channel = bot.get_channel(MI_CHANNEL)
         if channel:
             await channel.send("זמן להכין את המ.י.!")
             print("✅ [Reminder Bot] Sent Thursday M.I. reminder.")
+
+# ==========================================================
+# 6. CHANTER PREP (Saturday - Wednesday @ 21:40)
+# ==========================================================
+@tasks.loop(time=TIME_CHANTER_PREP)
+async def task_chanter_prep():
+    # weekday(): 5=Sat, 6=Sun, 0=Mon, 1=Tue, 2=Wed
+    if datetime.datetime.now(israel_tz).weekday() in [5, 6, 0, 1, 2]:
+        channel = bot.get_channel(MI_CHANNEL)
+        if channel:
+            await channel.send("זמן להכין לוז לחנתר!")
+            print("✅ [Reminder Bot] Sent Chanter preparation reminder.")
+
+# ==========================================================
+# 7. CHANTER SEND REMINDER (Saturday - Wednesday @ 23:00)
+# ==========================================================
+@tasks.loop(time=TIME_CHANTER_SEND)
+async def task_chanter_send():
+    if datetime.datetime.now(israel_tz).weekday() in [5, 6, 0, 1, 2]:
+        channel = bot.get_channel(MI_CHANNEL)
+        if channel:
+            await channel.send("תזכורת לשלוח לוז לחנתר!")
+            print("✅ [Reminder Bot] Sent Chanter submission reminder.")
 
 # ==========================================================
 # 🚀 BOT STARTUP
@@ -82,11 +117,14 @@ async def on_ready():
     if not task_sahi.is_running(): task_sahi.start()
     if not task_doch1.is_running(): task_doch1.start()
     if not task_mi_evening.is_running(): task_mi_evening.start()
+    if not task_reflection_thursday.is_running(): task_reflection_thursday.start()
     if not task_mi_thursday.is_running(): task_mi_thursday.start()
+    if not task_chanter_prep.is_running(): task_chanter_prep.start()
+    if not task_chanter_send.is_running(): task_chanter_send.start()
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         TOKEN = sys.argv[1]
-        bot.run(TOKEN)
+        bot.run(TOKEN.strip())
     else:
         print("❌ [Reminder Bot] Please provide a bot token.")

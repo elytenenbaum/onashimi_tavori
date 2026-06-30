@@ -10,7 +10,7 @@
         
         .header-panel { background-color: var(--bg-panel); padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #1e1f22; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         
-        .top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; border-bottom: 1px solid #1e1f22; padding-bottom: 15px; margin-bottom: 15px; }
+        .top-row { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 15px; border-bottom: 1px solid #1e1f22; padding-bottom: 15px; margin-bottom: 15px; }
         
         .title-and-tabs { display: flex; align-items: center; gap: 30px; flex-wrap: wrap; }
         h1 { margin: 0; font-size: 24px; color: var(--blurple); }
@@ -20,6 +20,7 @@
         .tab-btn:hover { background-color: #3f4147; color: var(--text-main); }
         .tab-btn.active-tab { background-color: var(--blurple); color: white; box-shadow: 0 4px 12px rgba(88, 101, 242, 0.4); }
 
+        .controls-wrapper { display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
         .controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
         
         .pill { background-color: transparent; color: var(--text-muted); border: 1px solid #4f545c; padding: 8px 14px; border-radius: 4px; font-weight: bold; font-size: 13px; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 8px; height: 38px; box-sizing: border-box; }
@@ -52,7 +53,17 @@
         .user-cell { font-weight: bold; color: var(--text-main); font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .time-cell { font-size: 12px; margin-top: 4px; font-weight: bold; }
         
-        .msg-content { flex-grow: 1; min-width: 0; font-size: 14px; color: #dbdee1; line-height: 1.4; }
+        /* --- MOBILE TEXT FIX --- */
+        .msg-content { 
+            flex-grow: 1; 
+            min-width: 0; 
+            font-size: 14px; 
+            color: #dbdee1; 
+            line-height: 1.4;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            white-space: pre-wrap;
+        }
         .msg-content-clamped { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
         
         .action-cell { min-width: 40px; display: flex; justify-content: center; align-items: center; }
@@ -72,10 +83,52 @@
         .toast.show { visibility: visible; opacity: 1; bottom: 50px; }
         .toast-btn { background-color: #313338; color: var(--text-main); border: 1px solid #4f545c; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
         .toast-btn:hover { background-color: #ed4245; border-color: #ed4245; color: white; }
+
+        /* --- ABOUT PAGE STYLING --- */
+        .about-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 40vh;
+            background-color: var(--bg-panel);
+            border: 1px solid #1e1f22;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            font-size: 1.2rem;
+            line-height: 2;
+            color: var(--text-muted);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            max-width: 600px;
+            margin: 40px auto;
+        }
+        .about-container p { margin: 5px 0; }
+        .about-container .highlight-gemini {
+            color: var(--blurple);
+            font-weight: bold;
+            font-size: 1.4rem;
+            margin-top: 20px;
+        }
         
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: var(--bg-main); }
         ::-webkit-scrollbar-thumb { background: #1a1b1e; border-radius: 4px; }
+
+        /* --- RESPONSIVE ADJUSTMENTS --- */
+        @media screen and (max-width: 768px) {
+            .controls-wrapper { width: 100%; align-items: stretch; }
+            .controls { justify-content: space-between; }
+            .search-box { flex-grow: 1; min-width: 100px; }
+            .msg-meta { min-width: 80px; max-width: 80px; }
+            .user-cell { font-size: 13px; }
+            .time-cell { font-size: 11px; }
+            .msg-content { font-size: 13px; }
+            .msg-row { gap: 10px; padding: 10px; }
+            .check-btn { width: 30px; height: 30px; font-size: 16px; }
+            .about-container { font-size: 1rem; padding: 20px; margin: 20px; }
+            .about-container .highlight-gemini { font-size: 1.2rem; }
+        }
     </style>
 </head>
 <body>
@@ -93,23 +146,26 @@
                     {% for cat in data.keys() %}
                     <button class="tab-btn" onclick="openCategory('{{ cat }}')" id="btn-{{ cat }}">{{ cat }}</button>
                     {% endfor %}
+                    <button class="tab-btn" onclick="openCategory('about')" id="btn-about">על האתר</button>
                 </div>
             </div>
             
-            <div class="controls">
-                <label class="pill">
-                    <input type="checkbox" id="showDoneToggle" onchange="applyFilters(document)"> הצג הושלמו
-                </label>
-                
-                <div class="pill">
-                    <select id="sortToggle" onchange="applyFilters(document)">
-                        <option value="newest">מהחדש ביותר</option>
-                        <option value="oldest">מהישן ביותר</option>
-                    </select>
-                </div>
+            <div class="controls-wrapper">
+                <div class="controls">
+                    <label class="pill">
+                        <input type="checkbox" id="showDoneToggle" onchange="applyFilters(document)"> הצג הושלמו
+                    </label>
+                    
+                    <div class="pill">
+                        <select id="sortToggle" onchange="applyFilters(document)">
+                            <option value="newest">מהחדש ביותר</option>
+                            <option value="oldest">מהישן ביותר</option>
+                        </select>
+                    </div>
 
-                <input type="text" id="searchInput" class="search-box" placeholder="חפש משתמש או הודעה...">
-                <a href="/logout" class="action-btn logout-btn">התנתק</a>
+                    <input type="text" id="searchInput" class="search-box" placeholder="חפש משתמש או הודעה...">
+                    <a href="/logout" class="action-btn logout-btn">התנתק</a>
+                </div>
             </div>
         </div>
         
@@ -150,6 +206,14 @@
             </div>
         </div>
         {% endfor %}
+
+        <div class="category-view" id="view-about" style="display: none;">
+            <div class="about-container">
+                <p>הוגה הרעיון ומפתח על: אורי מנדל</p>
+                <p>מפתח על ובעל חשבון gemini pro: עילי טננבאום</p>
+                <p class="highlight-gemini">99% מהעבודה: gemini pro</p>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -179,6 +243,9 @@
         function renderSubTabs(catName) {
             const subContainer = document.getElementById('subTabsContainer');
             subContainer.innerHTML = ''; 
+
+            // If it's the 'about' tab, we don't need sub-tabs for channels
+            if (catName === 'about') return;
 
             const activeView = document.getElementById('view-' + catName);
             if(!activeView) return;
@@ -483,9 +550,9 @@
                 sessionStorage.setItem('sortOrder', e.target.value);
             });
 
-            if (!activeTab || !document.getElementById('btn-' + activeTab)) {
+            if (!activeTab || (!document.getElementById('btn-' + activeTab) && activeTab !== 'about')) {
                 const firstBtn = document.querySelector('.tab-btn');
-                if (firstBtn) activeTab = firstBtn.innerText;
+                if (firstBtn) activeTab = firstBtn.id.replace('btn-', '');
             }
             if (activeTab) openCategory(activeTab);
         });

@@ -32,7 +32,7 @@ UI_CATEGORIES = {
 # 🛠️ HARDCODE YOUR CONFIGURATION HERE
 OUTPUT_FILE = "filtered_export.txt"
 GUI_TITLE = "עונשימי טבורי"
-BOT_TOKEN = "XXXXX" 
+BOT_TOKEN = "XXXXXX" 
 
 def run_bot_periodically():
     while True:
@@ -49,8 +49,8 @@ def run_bot_periodically():
         ]
             
         subprocess.run(cmd)
-        print("💤 [Orchestrator] Sync complete. Next update in 1 minute...")
-        time.sleep(60) 
+        print("💤 [Orchestrator] Sync complete. Next update in 5 minutes...")
+        time.sleep(300) 
 
 if __name__ == "__main__":
     print("🚀 Starting Multi-Channel Log Orchestrator...")

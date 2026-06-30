@@ -29,8 +29,8 @@ intents.members = True
 
 client = discord.Client(intents=intents)
 
-# 🛡️ THE FIX: Array of all common Discord checkmarks and unicode variations
-TARGET_EMOJIS = ["✅", "✔️", "✔", "☑️"]
+# 🛡️ BASE EMOJIS: The standard checkmarks used across all channels
+BASE_TARGET_EMOJIS = ["✅", "✔️", "✔", "☑️"]
 
 @client.event
 async def on_ready():
@@ -64,12 +64,14 @@ async def on_ready():
             
             print(f"📥 Exporting channel: #{channel.name}...")
             
+            # 🛡️ LIMIT REMOVED: Fetching the entire history of the channel
             history_iterator = channel.history(limit=None, oldest_first=True)
             
             async for message in history_iterator:
                 if requires_hashtag and "#" not in message.content:
                     continue
                 
+                # Daily channels auto-expire after 24 hours if no tag is found
                 if is_expiring:
                     text = message.content.lower()
                     
@@ -90,13 +92,20 @@ async def on_ready():
                     if discord.utils.utcnow() > expiration_time:
                         continue 
                 
-                # 🛡️ THE FIX: Now checks against the entire list of emojis
-                has_target_reaction = any(str(r.emoji) in TARGET_EMOJIS for r in message.reactions)
+                # Add the speaking head emoji ONLY if it's a discussion channel
+                valid_emojis = BASE_TARGET_EMOJIS.copy()
+                if cat_name == "דיונים":
+                    valid_emojis.append("🗣️")
+                
+                has_target_reaction = any(str(r.emoji) in valid_emojis for r in message.reactions)
                 is_done = "1" if has_target_reaction else "0"
                 
                 author_name = message.author.nick if hasattr(message.author, 'nick') and message.author.nick else message.author.display_name
                 
-                log_line = f"[{message.created_at.strftime('%Y-%m-%d %H:%M:%S')}] [{channel.name}] [{channel.id}] [{message.id}] [{is_done}] {author_name}: {message.clean_content}\n"
+                # Strip raw line breaks and replace them with a visual separator so it stays on one line
+                safe_content = message.clean_content.replace('\n', ' ↵ ')
+                log_line = f"[{message.created_at.strftime('%Y-%m-%d %H:%M:%S')}] [{channel.name}] [{channel.id}] [{message.id}] [{is_done}] {author_name}: {safe_content}\n"
+
                 file.write(log_line)
                 
                 if message.attachments:
